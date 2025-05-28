@@ -127,8 +127,104 @@ def preferencias():
 
 
 
-print(parametros_medios())
-print(preferencias())
+
+def rama1():
+
+    track_ids = set() #crea el set para guardar los ids
+    try:
+        driver = GraphDatabase.driver(URI, auth=AUTH)
+        with driver.session() as session:
+
+             #este query selecciona el historial del usuario y de ahi busca canciones en las que:
+             #danceability, energy y valence 
+             #tengan una diferencia menor que 5 con alguna cancion del autor
+            records = session.run("match (u:User)-[:LISTENED_TO]->(t1:Track) where u.id = '1' "
+            "with t1 LIMIT 20 MATCH (t2:Track) where t1 <> t2 and "
+            "abs(t1.danceability - t2.danceability) < 0.035 and "
+            "abs(t1.energy - t2.energy) < 0.035 and "
+            "abs(t1.valence - t2.valence) < 0.035 "
+            "return  distinct t2.id AS track_id LIMIT 250")
+
+            
+            for record in records:
+                track_ids.add(record["track_id"]) #guarda las canciones en el set
+
+        return track_ids #retorna el set
+
+    except Exception as e:
+        logger.error(f"Error en la consulta: {e}")
+
+def rama2():
+
+    track_ids = set() #crea un set para guardar los id (evita duplicados)
+    try:
+        driver = GraphDatabase.driver(URI, auth=AUTH)
+        with driver.session() as session:
+
+
+            records = session.run("match (u:User)-[:FOLLOWS]->(a:Artist)-[:CREATED]-(t1:Track) where u.id = '1' " 
+            "with t1 limit 20 "
+            "match (t2:Track) where t1<>t2 and "
+            "abs(t1.danceability - t2.danceability) < 0.025 and "
+            "abs(t1.energy - t2.energy) < 0.025 and "
+            "abs(t1.valence - t2.valence) < 0.025 "
+            "return  distinct t2.id AS track_id LIMIT 250")
+
+            for record in records:
+                track_ids.add(record["track_id"]) #guarda las canciones en el set
+
+        return track_ids #retorna el set
+            
+    except Exception as e:
+        logger.error(f"Error en la consulta: {e}")
+
+
+
+
+
+def rama3():
+
+    track_ids = set() #crea el set para guardar los ids
+    try:
+        driver = GraphDatabase.driver(URI, auth=AUTH)
+        with driver.session() as session:
+
+             #este query selecciona las preferencias del usuario y de ahi busca canciones en las que:
+             #danceability, energy y valence 
+             #tengan una diferencia menor que 0.06 con sus preferencias
+            records = session.run("match (u:User) where u.id = '1' "
+            "match (t:Track ) where "
+            "abs(t.danceability - u.danceability) < 0.06 and "
+            "abs(t.energy - u.energy) < 0.06 and "
+            "abs(t.valence - u.valence) < 0.06 "
+            "return  distinct t.id AS track_id LIMIT 250")
+
+            
+            for record in records:
+                track_ids.add(record["track_id"])
+
+        return track_ids
+
+    except Exception as e:
+        logger.error(f"Error en la consulta: {e}")
+
+
+        
+parametros_medios()
+preferencias()
+set_rama1 = rama1() #guarda las 3 ramas en una variable
+set_rama2 = rama2()
+set_rama3 = rama3()
+
+print("longitud de la rama 1: " + str(len(set_rama1)))
+print("longitud de la rama 2: " + str(len(set_rama2))) #Imprime longitudes de las ramas
+print("longitud de la rama 3: " + str(len(set_rama3)))
+
+
+arbol = set_rama1.union(set_rama2.union(set_rama3)) #combina las ramas e imprime la longitud del arbol
+duplicados = len(set_rama1) + len(set_rama2) + len(set_rama3) - len(arbol)
+
+print("longitud del arbol: " + str(len(arbol)) + ", se duplicaron " + str(duplicados) + " canciones")
 
 
 
