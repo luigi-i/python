@@ -130,7 +130,7 @@ def preferencias():
 
 def rama1():
 
-    track_ids = set() #crea el set para guardar los ids
+    tracks_data = [] #crea una lista para guardar las canciones
     try:
         driver = GraphDatabase.driver(URI, auth=AUTH)
         with driver.session() as session:
@@ -143,20 +143,23 @@ def rama1():
             "abs(t1.danceability - t2.danceability) < 0.035 and "
             "abs(t1.energy - t2.energy) < 0.035 and "
             "abs(t1.valence - t2.valence) < 0.035 "
-            "return  distinct t2.id AS track_id LIMIT 250")
+            "return  distinct t2.id AS track_id, t2.danceability as dance, t2.energy AS energy, t2.valence as valence LIMIT 250")
 
             
             for record in records:
-                track_ids.add(record["track_id"]) #guarda las canciones en el set
+                track_id = record["track_id"] #guarda el id de la cancion 
+                parametros = [record["dance"], record["energy"], record["valence"]] #guarda los parametros que se utilizan en una lista
+                tracks_data.append((track_id, parametros)) #guarda la tupla lista, parametros
+            
 
-        return track_ids #retorna el set
+        return tracks_data #retorna el set
 
     except Exception as e:
         logger.error(f"Error en la consulta: {e}")
 
 def rama2():
 
-    track_ids = set() #crea un set para guardar los id (evita duplicados)
+    tracks_data = [] #crea una lista para guardar las canciones
     try:
         driver = GraphDatabase.driver(URI, auth=AUTH)
         with driver.session() as session:
@@ -168,12 +171,14 @@ def rama2():
             "abs(t1.danceability - t2.danceability) < 0.025 and "
             "abs(t1.energy - t2.energy) < 0.025 and "
             "abs(t1.valence - t2.valence) < 0.025 "
-            "return  distinct t2.id AS track_id LIMIT 250")
+            "return  distinct t2.id AS track_id, t2.danceability as dance, t2.energy AS energy, t2.valence as valence LIMIT 250")
 
             for record in records:
-                track_ids.add(record["track_id"]) #guarda las canciones en el set
+                track_id = record["track_id"] #proceso de guardado identico a rama1()
+                parametros = [record["dance"], record["energy"], record["valence"]]
+                tracks_data.append((track_id,parametros))
 
-        return track_ids #retorna el set
+        return tracks_data #retorna la lista
             
     except Exception as e:
         logger.error(f"Error en la consulta: {e}")
@@ -184,7 +189,7 @@ def rama2():
 
 def rama3():
 
-    track_ids = set() #crea el set para guardar los ids
+    tracks_data = [] #crea una lista para guardar las canciones
     try:
         driver = GraphDatabase.driver(URI, auth=AUTH)
         with driver.session() as session:
@@ -197,13 +202,16 @@ def rama3():
             "abs(t.danceability - u.danceability) < 0.06 and "
             "abs(t.energy - u.energy) < 0.06 and "
             "abs(t.valence - u.valence) < 0.06 "
-            "return  distinct t.id AS track_id LIMIT 250")
+            "return  distinct t.id AS track_id, t.danceability as dance, t.energy AS energy, t.valence as valence LIMIT 250")
 
             
             for record in records:
-                track_ids.add(record["track_id"])
+                track_id = record["track_id"]
+                parametros = [record["dance"], record["energy"], record["valence"]]
+                tracks_data.append((track_id,parametros))
 
-        return track_ids
+
+        return tracks_data
 
     except Exception as e:
         logger.error(f"Error en la consulta: {e}")
@@ -212,19 +220,28 @@ def rama3():
         
 parametros_medios()
 preferencias()
-set_rama1 = rama1() #guarda las 3 ramas en una variable
-set_rama2 = rama2()
-set_rama3 = rama3()
+list_rama1 = rama1() #guarda las 3 ramas en una variable
+list_rama2 = rama2()
+list_rama3 = rama3()
 
-print("longitud de la rama 1: " + str(len(set_rama1)))
-print("longitud de la rama 2: " + str(len(set_rama2))) #Imprime longitudes de las ramas
-print("longitud de la rama 3: " + str(len(set_rama3)))
+#combinacion de ramas
+combinacion = {}
+for track_id, parametros in list_rama1 + list_rama2 + list_rama3:
+    if track_id not in combinacion: #utiliza un diccionario con los ids como llaves para eliminar los duplicados entre las 3 ramas
+        combinacion[track_id] = parametros
+
+arbol = [(track_id, parametros) for track_id, parametros in combinacion.items()] #regresa el diccionario ya sin duplicados a una lista
 
 
-arbol = set_rama1.union(set_rama2.union(set_rama3)) #combina las ramas e imprime la longitud del arbol
-duplicados = len(set_rama1) + len(set_rama2) + len(set_rama3) - len(arbol)
+def resultados_de_ramas():  #imprime un resumen de la longitud de cada rama, y la longitud del arbol, mencionando cuantas canciones se duplicaban
+    print("longitud de la rama 1: " + str(len(list_rama1)))
+    print("longitud de la rama 2: " + str(len(list_rama2))) #Imprime longitudes de las ramas
+    print("longitud de la rama 3: " + str(len(list_rama3)))
 
-print("longitud del arbol: " + str(len(arbol)) + ", se duplicaron " + str(duplicados) + " canciones")
+    duplicados = len(list_rama1) + len(list_rama2) + len(list_rama3) - len(arbol)
+
+    print("longitud del arbol: " + str(len(arbol)) + ", se duplicaron " + str(duplicados) + " canciones")
+
 
 
 
