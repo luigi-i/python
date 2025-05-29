@@ -31,7 +31,7 @@ else:
     print("Check error details above")
 
 
-def historial():
+def avg_historial():
     try:
         driver = GraphDatabase.driver(URI, auth=AUTH)
         with driver.session() as session:
@@ -76,7 +76,7 @@ def historial():
                         averages[feature] = None
                 
                 
-                return averages
+        return averages
             
             
     except Exception as e:
@@ -147,6 +147,26 @@ def perfil():
     except Exception as e:
         logger.error(f"Error en la consulta: {e}")
 
+def historial():
+    try:
+        driver = GraphDatabase.driver(URI, auth=AUTH)
+        with driver.session() as session:
+
+            historial = []
+
+            #obtener las 30 ultimas canciones del historial
+            records = session.run("match (u:User)-[:LISTENED_TO]->(t:Track) where u.id = '1' limit 30 return t.id as track_id")
+
+            for record in records:
+                historial.append(record["track_id"])
+
+        return historial
+
+            
+    except Exception as e:
+        logger.error(f"Error en la consulta: {e}")
+
+
 
 
 def rama1():
@@ -159,17 +179,20 @@ def rama1():
              #este query selecciona el historial del usuario y de ahi busca canciones en las que:
              #danceability, energy y valence 
              #tengan una diferencia menor que 5 con alguna cancion del autor
-            records = session.run("match (u:User)-[:LISTENED_TO]->(t1:Track) where u.id = '1' "
-            "with t1 LIMIT 20 MATCH (t2:Track) where t1 <> t2 and "
+            records = session.run("match (u:User)-[:LISTENED_TO]->(t1:Track) WHERE u.id = '1' "
+            "WITH t1 LIMIT 20 " 
+            "MATCH (t2:Track)-[:IN_PLAYLIST]->(p:Playlist)-[:HAS_GENRE]->(g:Genre), (a:Artist)-[:CREATED]->(t2) " 
+            "WHERE t1 <> t2 AND "
             "abs(t1.danceability - t2.danceability) < 0.035 and "
             "abs(t1.energy - t2.energy) < 0.035 and "
             "abs(t1.valence - t2.valence) < 0.035 "
-            "return  distinct t2.id AS track_id, t2.danceability as dance, t2.energy AS energy, t2.valence as valence LIMIT 250")
+            "return  distinct t2.id AS track_id, t2.danceability as dance, t2.energy AS energy, t2.valence as valence, t2.name as track_name, " 
+            "g.name as genre, a.name as artist LIMIT 250")
 
             
             for record in records:
                 track_id = record["track_id"] #guarda el id de la cancion 
-                parametros = [record["dance"], record["energy"], record["valence"]] #guarda los parametros que se utilizan en una lista
+                parametros = [record["dance"], record["energy"], record["valence"], record["genre"], record["artist"], record["track_name"]] #guarda los parametros que se utilizan en una lista
                 tracks_data.append((track_id, parametros)) #guarda la tupla lista, parametros
             
 
@@ -188,15 +211,17 @@ def rama2():
 
             records = session.run("match (u:User)-[:FOLLOWS]->(a:Artist)-[:CREATED]-(t1:Track) where u.id = '1' " 
             "with t1 limit 20 "
-            "match (t2:Track) where t1<>t2 and "
+            "MATCH (t2:Track)-[:IN_PLAYLIST]->(p:Playlist)-[:HAS_GENRE]->(g:Genre), (a:Artist)-[:CREATED]->(t2) " 
+            "where t1<>t2 and "
             "abs(t1.danceability - t2.danceability) < 0.025 and "
             "abs(t1.energy - t2.energy) < 0.025 and "
             "abs(t1.valence - t2.valence) < 0.025 "
-            "return  distinct t2.id AS track_id, t2.danceability as dance, t2.energy AS energy, t2.valence as valence LIMIT 250")
+            "return  distinct t2.id AS track_id, t2.danceability as dance, t2.energy AS energy, t2.valence as valence, t2.name as track_name, " 
+            "g.name as genre, a.name as artist LIMIT 250")
 
             for record in records:
                 track_id = record["track_id"] #proceso de guardado identico a rama1()
-                parametros = [record["dance"], record["energy"], record["valence"]]
+                parametros = [record["dance"], record["energy"], record["valence"], record["genre"], record["artist"], record["track_name"]]
                 tracks_data.append((track_id,parametros))
 
         return tracks_data #retorna la lista
@@ -216,16 +241,18 @@ def rama3():
              #danceability, energy y valence 
              #tengan una diferencia menor que 0.06 con sus preferencias
             records = session.run("match (u:User) where u.id = '1' "
-            "match (t:Track ) where "
+            "MATCH (t:Track)-[:IN_PLAYLIST]->(p:Playlist)-[:HAS_GENRE]->(g:Genre), (a:Artist)-[:CREATED]->(t) " 
+            "WHERE "
             "abs(t.danceability - u.danceability) < 0.06 and "
             "abs(t.energy - u.energy) < 0.06 and "
             "abs(t.valence - u.valence) < 0.06 "
-            "return  distinct t.id AS track_id, t.danceability as dance, t.energy AS energy, t.valence as valence LIMIT 250")
+            "return  distinct t.id AS track_id, t.danceability as dance, t.energy AS energy, t.valence as valence, t.name as track_name, " 
+            "g.name as genre, a.name as artist LIMIT 250")
 
             
             for record in records:
                 track_id = record["track_id"]
-                parametros = [record["dance"], record["energy"], record["valence"]]
+                parametros = [record["dance"], record["energy"], record["valence"], record["genre"], record["artist"], record["track_name"]]
                 tracks_data.append((track_id,parametros))
 
 
@@ -236,8 +263,6 @@ def rama3():
 
 
         
-historial()
-preferencias()
 list_rama1 = rama1() #guarda las 3 ramas en una variable
 list_rama2 = rama2()
 list_rama3 = rama3()
@@ -265,24 +290,76 @@ def scoreSort():#algoritmo de calificacion de canciones
     ######comparacion vectorial########
     
     #extrae los valores del perfil e historial a un diccionario
-    hist = historial()
+    avg_hist = avg_historial()
     perf = perfil()
+    puntuacion = preferencias()
+    hist = historial()
+
+    score_list = {}
 
 
 
     #valores del historial a vector
-    hist_val =np.array([hist["danceability"], hist["energy"], hist["valence"]]).reshape(1, -1)
+    avg_hist_val =np.array([avg_hist["danceability"], avg_hist["energy"], avg_hist["valence"]]).reshape(1, -1)
 
     #valores del perfil a vector
-    perf_val = np.array([perf["danceability"], perf["energy"], perf["valence"]]).reshape(1, -1)
+    perf_val = np.array([perf["dance"], perf["energy"], perf["valence"]]).reshape(1, -1)
 
 
     for track_id, atributos in arbol:
-        vector = np.array(atributos).reshape(1,-1)
 
-        r1 = cosine_similarity(hist_val, vector)[0][0]
+        r1 = r2 = r3 = r4 = r5 = 0
+
+
+        repeated = False
+
+        vector = np.array(atributos[:3]).reshape(1,-1)
+
+        r1 = cosine_similarity(avg_hist_val, vector)[0][0]
         r2 = cosine_similarity(perf_val, vector)[0][0]
 
+        if puntuacion["favorite_artist"] == atributos[4]:
+            r3 = 1
+        else:
+            r3 = 0
+
+        if puntuacion["favorite_genre"] == atributos[3]:
+            r4 = 1
+        elif puntuacion["disliked_genres"] == atributos[3]:
+            r4 = -1
+        else: r4 = 0
+
+        for track in hist:
+            if track == track_id:
+                repeated = True
+
+        if repeated: r5 = -1
+
+        #ponderacion
+
+        score = (0.4 * r1) + (0.20 * r2) + (0.15 * r3) + (0.10 * r4) + (0.15 * r5)
+
+        score_list[track_id] ={
+            "track_name": atributos[5],
+            "score": score
+        }
+
+    sorted_list = sorted(score_list.items(), key=lambda x: x[1]["score"], reverse= True) #metodo de sorteo extraido de la pagina de python
+
+    top_songs = sorted_list[:30]
+
+    
+    
+    return top_songs
 
 
+top_songs = scoreSort()
+
+for track_id, data in top_songs:
+    print(f"Nombre: {data['track_name']}" )
+    print(f"Score: {data['score']:.4f}")
+    print("---------------------------")
+
+        
+        
 
