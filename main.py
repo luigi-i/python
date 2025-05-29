@@ -1,5 +1,5 @@
 from neo4j import GraphDatabase
-#from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import logging
 
@@ -31,7 +31,7 @@ else:
     print("Check error details above")
 
 
-def parametros_medios():
+def historial():
     try:
         driver = GraphDatabase.driver(URI, auth=AUTH)
         with driver.session() as session:
@@ -126,6 +126,27 @@ def preferencias():
         logger.error(f"Error en la consulta: {e}")
 
 
+def perfil():
+    try:
+        driver = GraphDatabase.driver(URI, auth=AUTH)
+        with driver.session() as session:
+
+            #obtener las 30 ultimas canciones del historial
+            records = session.run("match (u:User) where u.id = '1' return u.danceability as dance, u.energy as energy, u.valence as valence ")
+
+            record = records.single()
+            output = {
+                "dance": record["dance"],
+                "energy": record["energy"],
+                "valence": record["valence"]
+            }
+
+            return output
+
+            
+    except Exception as e:
+        logger.error(f"Error en la consulta: {e}")
+
 
 
 def rama1():
@@ -184,9 +205,6 @@ def rama2():
         logger.error(f"Error en la consulta: {e}")
 
 
-
-
-
 def rama3():
 
     tracks_data = [] #crea una lista para guardar las canciones
@@ -218,7 +236,7 @@ def rama3():
 
 
         
-parametros_medios()
+historial()
 preferencias()
 list_rama1 = rama1() #guarda las 3 ramas en una variable
 list_rama2 = rama2()
@@ -241,6 +259,29 @@ def resultados_de_ramas():  #imprime un resumen de la longitud de cada rama, y l
     duplicados = len(list_rama1) + len(list_rama2) + len(list_rama3) - len(arbol)
 
     print("longitud del arbol: " + str(len(arbol)) + ", se duplicaron " + str(duplicados) + " canciones")
+
+def scoreSort():#algoritmo de calificacion de canciones
+
+    ######comparacion vectorial########
+    
+    #extrae los valores del perfil e historial a un diccionario
+    hist = historial()
+    perf = perfil()
+
+
+
+    #valores del historial a vector
+    hist_val =np.array([hist["danceability"], hist["energy"], hist["valence"]]).reshape(1, -1)
+
+    #valores del perfil a vector
+    perf_val = np.array([perf["danceability"], perf["energy"], perf["valence"]]).reshape(1, -1)
+
+
+    for track_id, atributos in arbol:
+        vector = np.array(atributos).reshape(1,-1)
+
+        r1 = cosine_similarity(hist_val, vector)[0][0]
+        r2 = cosine_similarity(perf_val, vector)[0][0]
 
 
 
