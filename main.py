@@ -10,26 +10,31 @@ logger = logging.getLogger(__name__)
 
 USER_ID = "1"
 
+#los 3 user id actuales tienen perfiles basados en:
+#1. pop
+#2. rap
+#3. rock
+
 #PARAMETROS DE CALIFICACION RAMA: DANCE, ENERGY, VALENCE
 
-R1_DANCE = 0.035
-R1_ENERGY = 0.035
-R1_VALENCE = 0.035
+R1_DANCE = 0.015
+R1_ENERGY = 0.015
+R1_VALENCE = 0.015
 
-R2_DANCE = 0.025
-R2_ENERGY = 0.025
-R2_VALENCE = 0.025
+R2_DANCE = 0.02
+R2_ENERGY = 0.02
+R2_VALENCE = 0.02
 
-R3_DANCE = 0.06
-R3_ENERGY = 0.06
-R3_VALENCE = 0.06
+R3_DANCE = 0.015
+R3_ENERGY = 0.015
+R3_VALENCE = 0.015
 
 #PARAMETROS DE PESO W
 
-WEIGHT_1 = 0.4 # historial reciente
-WEIGHT_2 = 0.2 #valores del perfil
-WEIGHT_3 = 0.15 #artista fav
-WEIGHT_4 = 0.1 #genero fav/no fav
+WEIGHT_1 = 0.5 # historial reciente
+WEIGHT_2 = 0.3 #valores del perfil
+WEIGHT_3 = 0.2 #artista fav
+WEIGHT_4 = 0.35 #genero fav/no fav
 WEIGHT_5 = 0.15 #esta en el historial?
 
 
@@ -91,8 +96,6 @@ def avg_historial():
                 for feature in features:
                     if feature in track_node:
                         feature_values[feature].append(track_node[feature])
-                    else:#Si no lo encuentra avisa que ese dato no se hallo
-                        print(f"Error: El atributo {feature} no se encontro en la cancion {track_node['name']}")
 
                 # Calcula el promedio de cada atributo en el diccionario
                 averages = {}
@@ -221,7 +224,7 @@ def rama1():
                   t2.name AS track_name,
                   g.name AS genre, 
                   a.name AS artist 
-            LIMIT 250"""
+            LIMIT 500"""
 
             records = session.run(query, user_id = USER_ID, #ejecuta el query con las variables especificadas al principio
                                   R1_ENERGY = R1_ENERGY, R1_DANCE = R1_DANCE, R1_VALENCE = R1_VALENCE)
@@ -267,7 +270,7 @@ def rama2():
                   t2.name AS track_name,
                   g.name AS genre,
                   a.name AS artist
-            LIMIT 250"""
+            LIMIT 500"""
 
             records = session.run(query, user_id = USER_ID, #ejecuta el query con las variables especificadas al principio
                                   R2_ENERGY = R2_ENERGY, R2_DANCE = R2_DANCE, R2_VALENCE = R2_VALENCE)
@@ -311,7 +314,7 @@ def rama3():
                   t.name AS track_name,
                   g.name AS genre,
                   a.name AS artist
-            LIMIT 250"""
+            LIMIT 500"""
              
             records = session.run(query, user_id = USER_ID, #ejecuta el query con las variables especificadas al principio
                                   R3_ENERGY = R3_ENERGY, R3_DANCE = R3_DANCE, R3_VALENCE = R3_VALENCE )
@@ -406,6 +409,7 @@ def scoreSort():#algoritmo de calificacion de canciones
 
         score_list[track_id] ={ #guarda la nota y el nombre de la cancion en un diccionario
             "track_name": atributos[5],
+            "artist": atributos[4],
             "score": score
         }
 
@@ -420,5 +424,6 @@ top_songs = scoreSort()
 for track_id, data in top_songs: #imprime los resultados
     print(f"Nombre: {data['track_name']}" )
     print(f"Score: {data['score']:.4f}")
+    print(f"Artista: {data['artist']}")
     print("---------------------------")
 
