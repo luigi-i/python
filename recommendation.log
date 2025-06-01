@@ -1,0 +1,9 @@
+2025-05-31 17:42:33,938 - __main__ - INFO - Conexión establecida con bolt://localhost:7687
+2025-05-31 17:42:34,010 - __main__ - INFO - Obteniendo datos para usuario 1
+2025-05-31 17:42:38,111 - __main__ - ERROR - Error en get_user_data: Couldn't connect to localhost:7687 (resolved to ('[::1]:7687', '127.0.0.1:7687')):
+Failed to establish connection to ResolvedIPv6Address(('::1', 7687, 0, 0)) (reason [WinError 10061] No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión)
+Failed to establish connection to ResolvedIPv4Address(('127.0.0.1', 7687)) (reason [WinError 10061] No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión)
+2025-05-31 17:42:38,117 - __main__ - ERROR - No se puede continuar sin datos del usuario
+2025-05-31 17:42:38,119 - __main__ - INFO - Conexión cerrada
+2025-05-31 17:42:38,131 - __main__ - INFO - Conexión cerrada
+2025-05-31 17:42:38,135 - __main__ - INFO - Conexión a Neo4j cerrada
